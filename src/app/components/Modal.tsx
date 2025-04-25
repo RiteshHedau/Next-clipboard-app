@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, FormEvent, ChangeEvent } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -13,10 +13,15 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
-export default function Modal({ onClose, onSubmit }) {
-    const [content, setContent] = useState('');
+interface ModalProps {
+    onClose: () => void;
+    onSubmit: (content: string) => void;
+}
 
-    const handleSubmit = (e) => {
+export default function Modal({ onClose, onSubmit }: ModalProps) {
+    const [content, setContent] = useState<string>('');
+
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (content.trim()) {
             onSubmit(content);
@@ -63,7 +68,7 @@ export default function Modal({ onClose, onSubmit }) {
                         multiline
                         rows={8}
                         value={content}
-                        onChange={(e) => setContent(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
                         placeholder="Paste your content here..."
                         variant="outlined"
                         fullWidth

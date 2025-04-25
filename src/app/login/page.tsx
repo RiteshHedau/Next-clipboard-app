@@ -14,7 +14,8 @@ import {
     CircularProgress,
     Container,
     Avatar,
-    Paper
+    Paper,
+    Link as MuiLink
 } from '@mui/material';
 import { Lock as LockIcon } from '@mui/icons-material';
 
@@ -131,10 +132,11 @@ export default function LoginPage() {
                         ) : "Login"}
                     </Button>
 
-                    <Link
+                    <MuiLink
+                        component={Link}
                         href="/signup"
-                        style={{
-                            color: '#1976d2',
+                        sx={{
+                            color: 'primary.main',
                             textDecoration: 'none',
                             '&:hover': {
                                 textDecoration: 'underline'
@@ -142,7 +144,7 @@ export default function LoginPage() {
                         }}
                     >
                         Don't have an account? Sign Up
-                    </Link>
+                    </MuiLink>
                 </Paper>
             </Container>
         </Box>

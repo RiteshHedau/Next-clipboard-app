@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, KeyboardEvent } from 'react';
 import Modal from './components/Modal';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,6 @@ import {
   CardContent,
   CardActions,
   CircularProgress,
-  Box,
   Grid,
   Fade,
   IconButton,
@@ -21,18 +20,37 @@ import {
   Snackbar,
   Alert,
   Divider,
-  Stack
+  Stack,
+  AlertColor
 } from '@mui/material';
 import { Add as AddIcon, Logout as LogoutIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { ContentCopy as CopyIcon } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+
+interface Paste {
+  pasteId: string;
+  content: string;
+  createdAt: string;
+}
+
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: AlertColor;
+}
 
 export default function Home() {
   const router = useRouter();
-  const [pastes, setPastes] = useState<Array<{ pasteId: string; content: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [newPaste, setNewPaste] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [pastes, setPastes] = useState<Paste[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [newPaste, setNewPaste] = useState<string>('');
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   useEffect(() => {
     // Load saved pastes when component mounts
@@ -41,11 +59,12 @@ export default function Home() {
 
   useEffect(() => {
     // Add global paste listener
-    const handlePaste = (e) => {
+    const handlePaste = (e: globalThis.KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'v') {
         setShowModal(true);
       }
     };
+    
     document.addEventListener('keydown', handlePaste);
     return () => document.removeEventListener('keydown', handlePaste);
   }, []);
@@ -64,7 +83,7 @@ export default function Home() {
     }
   };
 
-  const handleAddPaste = async (content) => {
+  const handleAddPaste = async (content: string) => {
     try {
       const response = await axios.post('/api/users/pastes', {
         content: content
@@ -86,7 +105,7 @@ export default function Home() {
           severity: 'error'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding paste:', error.response?.data?.error || error.message);
       setSnackbar({
         open: true,
@@ -96,7 +115,7 @@ export default function Home() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     try {
       const response = await axios.delete(`/api/users/pastes?pasteId=${id}`);
 
@@ -115,7 +134,7 @@ export default function Home() {
           severity: 'error'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting paste:', error.response?.data?.error || error.message);
       setSnackbar({
         open: true,
@@ -129,7 +148,7 @@ export default function Home() {
     try {
       await axios.get('/api/users/logout');
       router.push('/login');
-    } catch (error) {
+    } catch (error:any) {
       console.error('Error logging out:', error);
     }
   };
@@ -205,10 +224,10 @@ export default function Home() {
             No pastes found. Create your first paste!
           </Typography>
         ) : (
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {[...pastes].reverse().map((paste, index) => (
-              <Fade in={true} timeout={300 + index * 100} key={paste.pasteId}>
-                <Grid item xs={12}>
+              <Fade in timeout={300 + index * 100} key={paste.pasteId}>
+                <Box> {/* Use Box instead of div for better MUI integration */}
                   <Card
                     variant="outlined"
                     sx={{
@@ -290,10 +309,10 @@ export default function Home() {
                       </Button>
                     </CardActions>
                   </Card>
-                </Grid>
+                </Box>
               </Fade>
             ))}
-          </Grid>
+          </Box>
         )}
 
         {showModal && (
