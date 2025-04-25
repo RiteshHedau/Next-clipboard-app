@@ -26,6 +26,7 @@ export default function LoginPage() {
         password: "",
 
     })
+    
     const [buttonDisabled, setButtonDisabled] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
 
@@ -143,7 +144,7 @@ export default function LoginPage() {
                             }
                         }}
                     >
-                        Don't have an account? Sign Up
+                        Don&apos;t have an account? Sign Up
                     </MuiLink>
                 </Paper>
             </Container>
