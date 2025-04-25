@@ -36,7 +36,7 @@ export default function LoginPage() {
             setLoading(true);
             const response = await axios.post("/api/users/login", user);
             console.log("Login success", response.data);
-            toast.success("Login success");
+            toast.success("Login successful");
             router.push("/");
         } catch (error: any) {
             console.log("Login failed", error.message);
@@ -125,12 +125,7 @@ export default function LoginPage() {
                             height: 48 // Fixed height to prevent jumping
                         }}
                     >
-                        {loading ? (
-                            <CircularProgress
-                                size={24}
-                                sx={{ color: 'white' }}
-                            />
-                        ) : "Login"}
+                        {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : "Login"}
                     </Button>
 
                     <MuiLink
