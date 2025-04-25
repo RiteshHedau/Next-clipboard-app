@@ -26,7 +26,6 @@ export default function LoginPage() {
         password: "",
 
     })
-    
     const [buttonDisabled, setButtonDisabled] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
 
@@ -35,11 +34,11 @@ export default function LoginPage() {
         try {
             setLoading(true);
             const response = await axios.post("/api/users/login", user);
-            console.log("Login success", response.data);
-            toast.success("Login successful");
+            console.log(`Login success`, response.data);
+            toast.success(`Login success`);
             router.push("/");
         } catch (error: any) {
-            console.log("Login failed", error.message);
+            console.log(`Login failed`, error.message);
             toast.error(error.message);
         } finally {
             setLoading(false);
@@ -125,7 +124,12 @@ export default function LoginPage() {
                             height: 48 // Fixed height to prevent jumping
                         }}
                     >
-                        {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : "Login"}
+                        {loading ? (
+                            <CircularProgress
+                                size={24}
+                                sx={{ color: 'white' }}
+                            />
+                        ) : "Login"}
                     </Button>
 
                     <MuiLink
