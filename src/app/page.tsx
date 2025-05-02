@@ -23,7 +23,7 @@ import {
   Stack,
   AlertColor
 } from '@mui/material';
-import { Add as AddIcon, Logout as LogoutIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Logout as LogoutIcon, Delete as DeleteIcon, Mic as MicIcon } from '@mui/icons-material';
 import { ContentCopy as CopyIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -51,6 +51,9 @@ export default function Home() {
     message: '',
     severity: 'success'
   });
+  const [filterText, setFilterText] = useState<string>('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
+  const [totalMatches, setTotalMatches] = useState<number>(0);
 
   useEffect(() => {
     // Load saved pastes when component mounts
@@ -162,9 +165,159 @@ export default function Home() {
     });
   };
 
+  const scrollToPaste = (pasteId: string) => {
+    setTimeout(() => {
+      const element = document.getElementById(`paste-${pasteId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Highlight the paste card
+        element.style.transition = 'all 0.3s ease';
+        element.style.transform = 'scale(1.01)';
+        setTimeout(() => {
+          element.style.transform = 'scale(1)';
+        }, 500);
+      }
+    }, 100);
+  };
+
+  const handleSpeechRecognition = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new (window as any).webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setFilterText('');
+        setSnackbar({
+          open: true,
+          message: 'Listening... Please speak',
+          severity: 'info'
+        });
+      };
+
+      recognition.onresult = (event: any) => {
+        const last = event.results.length - 1;
+        // Remove punctuation and clean up transcript
+        const transcript = event.results[last][0].transcript
+          .toLowerCase()
+          .trim()
+          .replace(/[.?!,]/g, ''); // Remove common punctuation marks
+        
+        console.log('Searching for:', transcript);
+
+        const matchingPastes = pastes.filter(paste => {
+          // Remove punctuation from paste content for comparison
+          const content = paste.content.toLowerCase().replace(/[.?!,]/g, '');
+          return content.includes(transcript);
+        });
+
+        if (matchingPastes.length > 0) {
+          setFilterText(transcript);
+          setCurrentMatchIndex(0);
+          const firstMatch = matchingPastes[0];
+          
+          // First scroll to the matching paste
+          scrollToPaste(firstMatch.pasteId);
+          
+          // Then highlight the specific text after a delay
+          setTimeout(() => {
+            const marks = document.querySelectorAll('mark');
+            setTotalMatches(marks.length);
+            if (marks[0]) {
+              marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+              marks.forEach((mark, i) => {
+                (mark as HTMLElement).style.backgroundColor = i === 0 ? '#ffd54f' : '#bbdefb';
+              });
+            }
+          }, 300);
+
+          setSnackbar({
+            open: true,
+            message: `Found "${transcript}" in ${matchingPastes.length} ${matchingPastes.length === 1 ? 'paste' : 'pastes'}`,
+            severity: 'success'
+          });
+        } else {
+          setFilterText('');
+          setSnackbar({
+            open: true,
+            message: `No content found containing "${transcript}"`,
+            severity: 'info'
+          });
+        }
+        
+        recognition.stop();
+      };
+
+      recognition.onend = () => {
+        console.log('Speech recognition ended');
+      };
+
+      recognition.onerror = (event: any) => {
+        let errorMessage = '';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No speech was detected. Please try again.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'Microphone not found or not working.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Microphone permission denied. Please allow access.';
+            break;
+          case 'network':
+            errorMessage = 'Network error occurred. Please check your connection.';
+            break;
+          default:
+            errorMessage = `Error occurred: ${event.error}`;
+        }
+        console.error('Speech recognition error:', errorMessage);
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: 'error'
+        });
+        recognition.stop();
+      };
+
+      try {
+        recognition.start();
+        console.log('Recognition started');
+      } catch (err) {
+        console.error('Error starting recognition:', err);
+      }
+    }
+  };
+
+  const navigateMatches = (direction: 'next' | 'prev') => {
+    const marks = document.querySelectorAll('mark');
+    if (marks.length === 0) return;
+  
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (currentMatchIndex + 1) % marks.length;
+    } else {
+      newIndex = (currentMatchIndex - 1 + marks.length) % marks.length;
+    }
+  
+    setCurrentMatchIndex(newIndex);
+    marks[newIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Update the highlight style
+    marks.forEach((mark, i) => {
+      (mark as HTMLElement).style.backgroundColor = i === newIndex ? '#ffd54f' : '#bbdefb';
+    });
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f0f2f5' }}>
-      <AppBar position="static" sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: 'primary.main'
+        }}
+      >
         <Toolbar sx={{ flexDirection: { xs: 'column', sm: 'row' }, py: { xs: 2, sm: 0 }, gap: { xs: 2, sm: 0 } }}>
           <Typography
             variant="h6"
@@ -176,28 +329,84 @@ export default function Home() {
           >
             Your Pastes
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap',
+            gap: { xs: 1, sm: 2 },
+            width: '100%',
+            justifyContent: { xs: 'space-between', sm: 'flex-end' }
+          }}>
             <Button
-              fullWidth={false}
               color="inherit"
               startIcon={<AddIcon />}
               onClick={() => setShowModal(true)}
               sx={{
-                flex: { xs: 1, sm: 'none' },
-                fontSize: { xs: '0.875rem', sm: '1rem' }
+                minWidth: { xs: '40px', sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             >
               New Paste
             </Button>
+            <Tooltip title="Voice Search">
+              <IconButton
+                onClick={handleSpeechRecognition}
+                sx={{
+                  bgcolor: 'white',
+                  '&:hover': { bgcolor: 'grey.100' },
+                  width: { xs: '40px', sm: '40px' },
+                  height: { xs: '40px', sm: '40px' }
+                }}
+              >
+                <MicIcon color="primary" />
+              </IconButton>
+            </Tooltip>
+
+            {totalMatches > 0 && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <IconButton
+                  onClick={() => navigateMatches('prev')}
+                  sx={{
+                    bgcolor: 'white',
+                    '&:hover': { bgcolor: 'grey.100' }
+                  }}
+                >
+                  ←
+                </IconButton>
+                <Typography
+                  sx={{
+                    color: 'white',
+                    minWidth: '60px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {currentMatchIndex + 1}/{totalMatches}
+                </Typography>
+                <IconButton
+                  onClick={() => navigateMatches('next')}
+                  sx={{
+                    bgcolor: 'white',
+                    '&:hover': { bgcolor: 'grey.100' }
+                  }}
+                >
+                  →
+                </IconButton>
+              </Box>
+            )}
+
             <Button
-              fullWidth={false}
               color="error"
               variant="contained"
               startIcon={<LogoutIcon />}
               onClick={handleLogout}
               sx={{
-                flex: { xs: 1, sm: 'none' },
-                fontSize: { xs: '0.875rem', sm: '1rem' }
+                minWidth: { xs: '40px', sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             >
               Logout
@@ -206,7 +415,17 @@ export default function Home() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+      {/* Add a toolbar component to prevent content from going under AppBar */}
+      <Toolbar />
+
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          px: { xs: 1, sm: 2, md: 3 },
+          mt: { xs: 1, sm: 2, md: 3 },
+          mb: { xs: 2, sm: 3, md: 4 }
+        }}
+      >
         {loading ? (
           <Box display="flex" justifyContent="center" p={4}>
             <CircularProgress />
@@ -227,12 +446,16 @@ export default function Home() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
             {[...pastes].reverse().map((paste, index) => (
               <Fade in timeout={300 + index * 100} key={paste.pasteId}>
-                <Box> {/* Use Box instead of div for better MUI integration */}
+                <Box id={`paste-${paste.pasteId}`}> {/* Use Box instead of div for better MUI integration */}
                   <Card
                     variant="outlined"
                     sx={{
-                      background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      background: filterText && paste.content.toLowerCase().includes(filterText.toLowerCase())
+                        ? 'linear-gradient(145deg, #e3f2fd 0%, #bbdefb 100%)'
+                        : 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+                      boxShadow: filterText && paste.content.toLowerCase().includes(filterText.toLowerCase())
+                        ? '0 0 8px rgba(33,150,243,0.3)'
+                        : '0 2px 4px rgba(0,0,0,0.1)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         transform: { xs: 'none', sm: 'translateY(-2px)' },
@@ -280,10 +503,24 @@ export default function Home() {
                           p: { xs: 1.5, sm: 2 },
                           borderRadius: 1,
                           fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          lineHeight: { xs: 1.4, sm: 1.5 }
+                          lineHeight: { xs: 1.4, sm: 1.5 },
+                          '& mark': {
+                            backgroundColor: '#bbdefb',
+                            color: 'inherit',
+                            transition: 'background-color 0.3s ease'
+                          }
                         }}
                       >
-                        {paste.content}
+                        {filterText ? (
+                          <div dangerouslySetInnerHTML={{
+                            __html: paste.content.replace(
+                              new RegExp(filterText, 'gi'),
+                              match => `<mark>${match}</mark>`
+                            )
+                          }} />
+                        ) : (
+                          paste.content
+                        )}
                       </Typography>
                     </CardContent>
                     <CardActions sx={{
@@ -319,6 +556,7 @@ export default function Home() {
           <Modal
             onClose={() => setShowModal(false)}
             onSubmit={handleAddPaste}
+            initialContent={newPaste}
           />
         )}
 
