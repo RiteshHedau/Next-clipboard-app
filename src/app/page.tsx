@@ -67,7 +67,7 @@ export default function Home() {
         setShowModal(true);
       }
     };
-    
+
     document.addEventListener('keydown', handlePaste);
     return () => document.removeEventListener('keydown', handlePaste);
   }, []);
@@ -151,7 +151,7 @@ export default function Home() {
     try {
       await axios.get('/api/users/logout');
       router.push('/login');
-    } catch (error:any) {
+    } catch (error: any) {
       console.error('Error logging out:', error);
     }
   };
@@ -203,7 +203,7 @@ export default function Home() {
           .toLowerCase()
           .trim()
           .replace(/[.?!,]/g, ''); // Remove common punctuation marks
-        
+
         console.log('Searching for:', transcript);
 
         const matchingPastes = pastes.filter(paste => {
@@ -216,10 +216,10 @@ export default function Home() {
           setFilterText(transcript);
           setCurrentMatchIndex(0);
           const firstMatch = matchingPastes[0];
-          
+
           // First scroll to the matching paste
           scrollToPaste(firstMatch.pasteId);
-          
+
           // Then highlight the specific text after a delay
           setTimeout(() => {
             const marks = document.querySelectorAll('mark');
@@ -245,7 +245,7 @@ export default function Home() {
             severity: 'info'
           });
         }
-        
+
         recognition.stop();
       };
 
@@ -292,17 +292,17 @@ export default function Home() {
   const navigateMatches = (direction: 'next' | 'prev') => {
     const marks = document.querySelectorAll('mark');
     if (marks.length === 0) return;
-  
-    let newIndex:any;
+
+    let newIndex: any;
     if (direction === 'next') {
       newIndex = (currentMatchIndex + 1) % marks.length;
     } else {
       newIndex = (currentMatchIndex - 1 + marks.length) % marks.length;
     }
-  
+
     setCurrentMatchIndex(newIndex);
     marks[newIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
+
     // Update the highlight style
     marks.forEach((mark, i) => {
       (mark as HTMLElement).style.backgroundColor = i === newIndex ? '#ffd54f' : '#bbdefb';
@@ -311,9 +311,9 @@ export default function Home() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f0f2f5' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
+      <AppBar
+        position="fixed"
+        sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           backgroundColor: 'primary.main'
         }}
@@ -329,8 +329,8 @@ export default function Home() {
           >
             Your Pastes
           </Typography>
-          <Box sx={{ 
-            display: 'flex', 
+          <Box sx={{
+            display: 'flex',
             flexWrap: 'wrap',
             gap: { xs: 1, sm: 2 },
             width: '100%',
@@ -363,8 +363,8 @@ export default function Home() {
             </Tooltip>
 
             {totalMatches > 0 && (
-              <Box sx={{ 
-                display: 'flex', 
+              <Box sx={{
+                display: 'flex',
                 alignItems: 'center',
                 gap: 1
               }}>
@@ -418,9 +418,9 @@ export default function Home() {
       {/* Add a toolbar component to prevent content from going under AppBar */}
       <Toolbar />
 
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
+      <Container
+        maxWidth="lg"
+        sx={{
           px: { xs: 1, sm: 2, md: 3 },
           mt: { xs: 1, sm: 2, md: 3 },
           mb: { xs: 2, sm: 3, md: 4 }
@@ -556,7 +556,8 @@ export default function Home() {
           <Modal
             onClose={() => setShowModal(false)}
             onSubmit={handleAddPaste}
-            initialContent={newPaste}
+            // Only pass initialContent if it has a value
+            {...(newPaste ? { initialContent: newPaste } : {})}
           />
         )}
 

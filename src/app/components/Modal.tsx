@@ -16,10 +16,11 @@ import { Close as CloseIcon } from '@mui/icons-material';
 interface ModalProps {
     onClose: () => void;
     onSubmit: (content: string) => void;
+    initialContent?: string;  // Make initialContent optional
 }
 
-export default function Modal({ onClose, onSubmit }: ModalProps) {
-    const [content, setContent] = useState<string>('');
+export default function Modal({ onClose, onSubmit, initialContent = '' }: ModalProps) {
+    const [content, setContent] = useState<string>(initialContent);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
