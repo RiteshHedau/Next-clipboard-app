@@ -293,7 +293,7 @@ export default function Home() {
     const marks = document.querySelectorAll('mark');
     if (marks.length === 0) return;
   
-    let newIndex;
+    let newIndex:any;
     if (direction === 'next') {
       newIndex = (currentMatchIndex + 1) % marks.length;
     } else {
