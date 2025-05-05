@@ -17,9 +17,10 @@ interface ModalProps {
     onClose: () => void;
     onSubmit: (content: string) => void;
     initialContent?: string;  // Make initialContent optional
+    title?: string;
 }
 
-export default function Modal({ onClose, onSubmit, initialContent = '' }: ModalProps) {
+export default function Modal({ onClose, onSubmit, initialContent = '', title }: ModalProps) {
     const [content, setContent] = useState<string>(initialContent);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -47,7 +48,7 @@ export default function Modal({ onClose, onSubmit, initialContent = '' }: ModalP
                 alignItems: 'center'
             }}>
                 <Typography variant="h6" component="div">
-                    Add New Paste
+                    {title || 'New Paste'}
                 </Typography>
                 <IconButton
                     aria-label="close"

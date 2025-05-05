@@ -23,7 +23,7 @@ import {
   Stack,
   AlertColor
 } from '@mui/material';
-import { Add as AddIcon, Logout as LogoutIcon, Delete as DeleteIcon, Mic as MicIcon } from '@mui/icons-material';
+import { Add as AddIcon, Logout as LogoutIcon, Delete as DeleteIcon, Mic as MicIcon, Edit as EditIcon } from '@mui/icons-material';
 import { ContentCopy as CopyIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -54,6 +54,7 @@ export default function Home() {
   const [filterText, setFilterText] = useState<string>('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [totalMatches, setTotalMatches] = useState<number>(0);
+  const [editingPaste, setEditingPaste] = useState<Paste | null>(null);
 
   useEffect(() => {
     // Load saved pastes when component mounts
@@ -113,6 +114,37 @@ export default function Home() {
       setSnackbar({
         open: true,
         message: error.response?.data?.error || 'Failed to add paste',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleUpdatePaste = async (id: string, content: string) => {
+    try {
+      const response = await axios.put(`/api/users/pastes?pasteId=${id}`, {
+        content: content
+      });
+
+      if (response.data.success) {
+        await fetchPastes();
+        setSnackbar({
+          open: true,
+          message: 'Paste updated successfully!',
+          severity: 'success'
+        });
+      } else {
+        console.error('Update failed:', response.data.error);
+        setSnackbar({
+          open: true,
+          message: response.data.error || 'Failed to update paste',
+          severity: 'error'
+        });
+      }
+    }catch (error: any) {
+      console.error('Error updating paste:', error.response?.data?.error || error.message);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.error || 'Failed to update paste',
         severity: 'error'
       });
     }
@@ -307,6 +339,21 @@ export default function Home() {
     marks.forEach((mark, i) => {
       (mark as HTMLElement).style.backgroundColor = i === newIndex ? '#ffd54f' : '#bbdefb';
     });
+  };
+
+  const handleEdit = (paste: Paste) => {
+    setEditingPaste(paste);
+    setShowModal(true);
+  };
+
+  const handleModalSubmit = async (content: string) => {
+    if (editingPaste) {
+      await handleUpdatePaste(editingPaste.pasteId, content);
+    } else {
+      await handleAddPaste(content);
+    }
+    setEditingPaste(null);
+    setShowModal(false);
   };
 
   return (
@@ -529,6 +576,22 @@ export default function Home() {
                       gap: 1
                     }}>
                       <Button
+                        startIcon={<EditIcon />}
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleEdit(paste)}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          '&:hover': {
+                            bgcolor: 'primary.main',
+                            color: 'white'
+                          }
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
                         startIcon={<DeleteIcon />}
                         color="error"
                         variant="outlined"
@@ -554,10 +617,13 @@ export default function Home() {
 
         {showModal && (
           <Modal
-            onClose={() => setShowModal(false)}
-            onSubmit={handleAddPaste}
-            // Only pass initialContent if it has a value
-            {...(newPaste ? { initialContent: newPaste } : {})}
+            onClose={() => {
+              setShowModal(false);
+              setEditingPaste(null);
+            }}
+            onSubmit={handleModalSubmit}
+            initialContent={editingPaste?.content || newPaste}
+            title={editingPaste ? 'Edit Paste' : 'New Paste'}
           />
         )}
 

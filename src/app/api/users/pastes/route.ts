@@ -213,3 +213,85 @@ export async function DELETE(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
+
+export async function PUT(request: NextRequest) {
+    try {
+        const cookieStore = cookies();
+        const token = cookieStore.get('token');
+
+        if (!token || !token.value) {
+            return NextResponse.json({
+                success: false,
+                error: "No authentication token found"
+            }, { status: 401 });
+        }
+
+        const decodedToken: any = jwt.verify(token.value, process.env.TOKEN_SECRET!);
+        const pasteId = request.nextUrl.searchParams.get('pasteId');
+        console.log('Update request pasteId:', pasteId); // Debug log
+
+        if (!pasteId) {
+            return NextResponse.json({
+                success: false,
+                error: "PasteId is required"
+            }, { status: 400 });
+        }
+
+        const reqBody = await request.json();
+        console.log('Received update content:', reqBody); // Debug log
+
+        if (!reqBody.content) {
+            return NextResponse.json({
+                success: false,
+                error: "Paste content is required"
+            }, { status: 400 });
+        }
+
+        const user = await User.findById(decodedToken.id);
+        if (!user) {
+            return NextResponse.json({
+                success: false,
+                error: "User not found"
+            }, { status: 404 });
+        }
+
+        // Find the paste to update
+        const pasteIndex = user.pastes.findIndex((p: any) => p.pasteId === pasteId);
+        console.log('Paste index for update:', pasteIndex); // Debug log
+        if (pasteIndex === -1) {
+            return NextResponse.json({
+                success: false,
+                error: "Paste not found",
+                details: {
+                    requestedId: pasteId,
+                    totalPastes: user.pastes.length
+                }
+            }, { status: 404 });
+        }
+
+        // Update the paste content
+        user.pastes[pasteIndex].content = reqBody.content;
+        await user.save();
+
+        return NextResponse.json({
+            success: true,
+            message: "Paste updated successfully",
+            data: {
+                updatedPaste: {
+                    pasteId: user.pastes[pasteIndex].pasteId,
+                    content: user.pastes[pasteIndex].content.substring(0, 50) + (user.pastes[pasteIndex].content.length > 50 ? '...' : ''),
+                    createdAt: user.pastes[pasteIndex].createdAt
+                },
+                remainingPastes: user.pastes.length,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error: any) {
+        console.error('Update error:', error);
+        return NextResponse.json({
+            success: false,
+            error: error.message || "Internal server error"
+        }, { status: 500 });
+    } 
+}
