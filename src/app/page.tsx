@@ -55,6 +55,7 @@ export default function Home() {
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [totalMatches, setTotalMatches] = useState<number>(0);
   const [editingPaste, setEditingPaste] = useState<Paste | null>(null);
+  const [expandedPastes, setExpandedPastes] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     // Load saved pastes when component mounts
@@ -356,6 +357,38 @@ export default function Home() {
     setShowModal(false);
   };
 
+  const togglePaste = (pasteId: string) => {
+    setExpandedPastes(prev => ({
+      ...prev,
+      [pasteId]: !prev[pasteId]
+    }));
+  };
+
+  const formatCodeContent = (content: string) => {
+    return content
+      .split('\n')
+      .map(line => line.trimEnd())
+      .join('\n');
+  };
+
+  // Add helper function to format code blocks
+  const formatContent = (content: string) => {
+    return content
+      .split('\n')
+      .map(line => {
+        // Preserve input field syntax
+        const inputRegex = /<(input|textarea|select)([^>]*)>/g;
+        line = line.replace(inputRegex, (match) => `\`${match}\``);
+        
+        // Preserve code formatting
+        if (line.trim().startsWith('```') || line.trim().startsWith('// ')) {
+          return line;
+        }
+        return line;
+      })
+      .join('\n');
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f0f2f5' }}>
       <AppBar
@@ -545,30 +578,90 @@ export default function Home() {
                         sx={{
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
-                          fontFamily: 'monospace',
+                          fontFamily: 'Consolas, Monaco, monospace',
                           bgcolor: '#f8f9fa',
                           p: { xs: 1.5, sm: 2 },
                           borderRadius: 1,
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          lineHeight: { xs: 1.4, sm: 1.5 },
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
+                          lineHeight: 1.6,
+                          maxHeight: expandedPastes[paste.pasteId] ? 'none' : '500px', // Increased height
+                          overflow: 'hidden',
+                          position: 'relative',
                           '& mark': {
-                            backgroundColor: '#bbdefb',
+                            backgroundColor: '#fff59d',
                             color: 'inherit',
-                            transition: 'background-color 0.3s ease'
+                            padding: '2px 0',
+                            borderRadius: '2px',
+                            textDecoration: 'none'
+                          },
+                          '& code': {
+                            display: 'block',
+                            padding: '8px',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px',
+                            marginBottom: '8px'
+                          },
+                          '& pre': {
+                            margin: '8px 0',
+                            padding: '12px',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px',
+                            overflow: 'auto'
                           }
                         }}
                       >
                         {filterText ? (
-                          <div dangerouslySetInnerHTML={{
-                            __html: paste.content.replace(
-                              new RegExp(filterText, 'gi'),
-                              match => `<mark>${match}</mark>`
-                            )
-                          }} />
+                          <div 
+                            dangerouslySetInnerHTML={{
+                              __html: formatContent(paste.content).replace(
+                                new RegExp(filterText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+                                match => `<mark>${match}</mark>`
+                              )
+                            }}
+                          />
                         ) : (
-                          paste.content
+                          formatContent(paste.content)
+                        )}
+                        {paste.content.length > 300 && !expandedPastes[paste.pasteId] && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: '100px',
+                              background: 'linear-gradient(transparent, #f8f9fa)',
+                              display: 'flex',
+                              alignItems: 'flex-end',
+                              justifyContent: 'center',
+                              pb: 2
+                            }}
+                          >
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              onClick={() => togglePaste(paste.pasteId)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Show More
+                            </Button>
+                          </Box>
                         )}
                       </Typography>
+                      {paste.content.length > 300 && expandedPastes[paste.pasteId] && (
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            size="small"
+                            onClick={() => togglePaste(paste.pasteId)}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Show Less
+                          </Button>
+                        </Box>
+                      )}
                     </CardContent>
                     <CardActions sx={{
                       justifyContent: 'flex-end',
