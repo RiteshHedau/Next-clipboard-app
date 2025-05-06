@@ -55,7 +55,6 @@ export default function Home() {
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [totalMatches, setTotalMatches] = useState<number>(0);
   const [editingPaste, setEditingPaste] = useState<Paste | null>(null);
-  const [expandedPastes, setExpandedPastes] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     // Load saved pastes when component mounts
@@ -357,13 +356,6 @@ export default function Home() {
     setShowModal(false);
   };
 
-  const togglePaste = (pasteId: string) => {
-    setExpandedPastes(prev => ({
-      ...prev,
-      [pasteId]: !prev[pasteId]
-    }));
-  };
-
   const formatCodeContent = (content: string) => {
     return content
       .split('\n')
@@ -584,8 +576,6 @@ export default function Home() {
                           borderRadius: 1,
                           fontSize: { xs: '0.875rem', sm: '1rem' },
                           lineHeight: 1.6,
-                          maxHeight: expandedPastes[paste.pasteId] ? 'none' : '500px', // Increased height
-                          overflow: 'hidden',
                           position: 'relative',
                           '& mark': {
                             backgroundColor: '#fff59d',
@@ -622,46 +612,7 @@ export default function Home() {
                         ) : (
                           formatContent(paste.content)
                         )}
-                        {paste.content.length > 300 && !expandedPastes[paste.pasteId] && (
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: '100px',
-                              background: 'linear-gradient(transparent, #f8f9fa)',
-                              display: 'flex',
-                              alignItems: 'flex-end',
-                              justifyContent: 'center',
-                              pb: 2
-                            }}
-                          >
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              size="small"
-                              onClick={() => togglePaste(paste.pasteId)}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Show More
-                            </Button>
-                          </Box>
-                        )}
                       </Typography>
-                      {paste.content.length > 300 && expandedPastes[paste.pasteId] && (
-                        <Box sx={{ textAlign: 'center', mt: 2 }}>
-                          <Button
-                            variant="outlined"
-                            color="primary"
-                            size="small"
-                            onClick={() => togglePaste(paste.pasteId)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Show Less
-                          </Button>
-                        </Box>
-                      )}
                     </CardContent>
                     <CardActions sx={{
                       justifyContent: 'flex-end',
